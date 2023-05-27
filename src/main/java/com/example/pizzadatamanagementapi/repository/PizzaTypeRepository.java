@@ -9,4 +9,5 @@ import java.util.Optional;
 @Repository
 public interface PizzaTypeRepository extends JpaRepository<PizzaType, Long> {
     Optional<PizzaType> findByPizzaTypeId(String pizzaTypeId);
+    Optional<PizzaType> findById(Long id);
 }

@@ -1,5 +1,6 @@
 package com.example.pizzadatamanagementapi.service;
 
+import com.example.pizzadatamanagementapi.payload.PizzaDTO;
 import com.example.pizzadatamanagementapi.model.*;
 import com.example.pizzadatamanagementapi.repository.OrderDetailsRepository;
 import com.example.pizzadatamanagementapi.repository.OrderRepository;
@@ -15,16 +16,12 @@ import org.springframework.stereotype.Service;
 import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,8 +46,8 @@ public class DataImportService {
     }
 
     @Transactional
-    public void importData(String csvFilePath) throws IOException, ParseException {
-        if(csvFilePath.equalsIgnoreCase("all")){
+    public void importData(String filename) throws IOException, ParseException {
+        if(filename.equalsIgnoreCase("all")){
             importDataFromCSV(FILE_PATH_PIZZA_TYPES);
 
             importDataFromCSV(FILE_PATH_PIZZA);
@@ -61,42 +58,47 @@ public class DataImportService {
 
             System.out.println("All data imported successfully!");
         }else{
-            importDataFromCSV(csvFilePath);
+            importDataFromCSV(filename);
         }
     }
     private void importDataFromCSV(String csvFilePath) throws IOException, ParseException {
-        Path path = Paths.get(csvFilePath);
-        String fileName = path.getFileName().toString();
-
-        FileReader fileReader = new FileReader(csvFilePath);
-        CSVParser csvParser  = new CSVParser(fileReader, CSVFormat.DEFAULT);
-        switch (fileName) {
-            case "pizza_types.csv":
+        FileReader fileReader;
+        CSVParser csvParser ;
+        switch (csvFilePath) {
+            case "pizza_types":
+                fileReader = new FileReader(FILE_PATH_PIZZA_TYPES);
+                csvParser = new CSVParser(fileReader, CSVFormat.DEFAULT);
                 List<PizzaType> pizzaTypes = parsePizzaTypeDataFromCSV(csvParser);
                 pizzaTypeRepository.saveAll(pizzaTypes);
                 System.out.println("Pizza Type data imported successfully!");
             break;
 
-            case "pizzas.csv":
+            case "pizzas":
+                fileReader = new FileReader(FILE_PATH_PIZZA);
+                csvParser = new CSVParser(fileReader, CSVFormat.DEFAULT);
                 List<Pizza> pizzas = parsePizzaDataFromCSV(csvParser);
                 pizzaRepository.saveAll(pizzas);
                 System.out.println("Pizza data imported successfully!");
             break;
 
-            case "orders.csv":
+            case "orders":
+                fileReader = new FileReader(FILE_PATH_ORDER);
+                csvParser = new CSVParser(fileReader, CSVFormat.DEFAULT);
                 List<Order> orders = parseOrderDataFromCSV(csvParser);
                 orderRepository.saveAll(orders);
                 System.out.println("Order imported successfully!");
             break;
 
-            case "order_details.csv":
+            case "order_details":
+                fileReader = new FileReader(FILE_PATH_ORDER_DETAILS);
+                csvParser = new CSVParser(fileReader, CSVFormat.DEFAULT);
                 List<OrderDetail> orderDetails = parseOrderDetailDataFromCSV(csvParser);
                 orderDetailsRepository.saveAll(orderDetails);
                 System.out.println("Order Details imported successfully!");
                 break;
 
             default:
-                throw new IllegalArgumentException("Unsupported file: " + fileName);
+                throw new IllegalArgumentException("Unsupported file: " + csvFilePath);
         }
     }
     private List<OrderDetail> parseOrderDetailDataFromCSV(CSVParser csvParser) {
@@ -143,7 +145,7 @@ public class DataImportService {
             }
             String pizzaId = csvRecord.get(0);
             PizzaType pizzaTypeId = getPizzaTypeId(csvRecord.get(1));
-            PizzaSize size = getPizzaSize(csvRecord.get(2));
+            PizzaSize size = PizzaDTO.getSizeEnum(csvRecord.get(2));
             BigDecimal price = new BigDecimal(csvRecord.get(3));
 
             pizza.add(new Pizza(pizzaId,pizzaTypeId,size,price));
@@ -195,20 +197,5 @@ public class DataImportService {
             throw new IllegalArgumentException("Unknown pizza_type_id: " + pizzaTypeId);
         }
     }
-    private PizzaSize getPizzaSize(String size) {
-        switch (size) {
-            case "S":
-                return PizzaSize.S;
-            case "M":
-                return PizzaSize.M;
-            case "L":
-                return PizzaSize.L;
-            case "XL":
-                return PizzaSize.XL;
-            case "XXL":
-                return PizzaSize.XXL;
-            default:
-                throw new IllegalArgumentException("Invalid pizza size: " + size);
-        }
-    }
+
 }

@@ -1,26 +1,19 @@
-package com.example.pizzadatamanagementapi.model;
+package com.example.pizzadatamanagementapi.payload;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import jakarta.persistence.*;
+import com.example.pizzadatamanagementapi.model.PizzaType;
 
-@Entity
-@Table(name = "PizzaTypes")
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-public class PizzaType {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class PizzaTypeDTO {
     private Long id;
-    @Column(name = "pizza_type_id")
     private String pizzaTypeId;
-    @Column(name = "name")
     private String name;
-    @Column(name = "category")
     private String category;
-    @Column(name = "ingredients")
     private String ingredients;
-    public PizzaType() {
+
+    public PizzaTypeDTO() {
     }
-    public PizzaType(String pizzaTypeId, String name, String category, String ingredients) {
+
+    public PizzaTypeDTO(Long id, String pizzaTypeId, String name, String category, String ingredients) {
+        this.id = id;
         this.pizzaTypeId = pizzaTypeId;
         this.name = name;
         this.category = category;
@@ -65,5 +58,24 @@ public class PizzaType {
 
     public void setIngredients(String ingredients) {
         this.ingredients = ingredients;
+    }
+
+    public PizzaType convertToPizzaType() {
+        PizzaType pizzaType = new PizzaType();
+        pizzaType.setPizzaTypeId(this.getPizzaTypeId());
+        pizzaType.setName(this.getName());
+        pizzaType.setCategory(this.getCategory());
+        pizzaType.setIngredients(this.getIngredients());
+        return pizzaType;
+    }
+
+    public static PizzaTypeDTO convertToDTO(PizzaType pizzaType) {
+        PizzaTypeDTO dto = new PizzaTypeDTO();
+        dto.setId(pizzaType.getId());
+        dto.setPizzaTypeId(pizzaType.getPizzaTypeId());
+        dto.setName(pizzaType.getName());
+        dto.setCategory(pizzaType.getCategory());
+        dto.setIngredients(pizzaType.getIngredients());
+        return dto;
     }
 }

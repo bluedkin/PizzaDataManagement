@@ -1,47 +1,58 @@
 package com.example.pizzadatamanagementapi.controller;
 
-import com.example.pizzadatamanagementapi.service.DataImportService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.pizzadatamanagementapi.model.Pizza;
+import com.example.pizzadatamanagementapi.payload.PizzaDTO;
+import com.example.pizzadatamanagementapi.service.PizzaService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
-import java.text.ParseException;
+import java.util.List;
+import java.util.Optional;
 
 @RestController
-@RequestMapping("/pizza")
+@RequestMapping("/pizzas")
 public class PizzaController {
-    private final DataImportService dataImportService;
-    @Autowired
-    public PizzaController(DataImportService dataImportService) {
-        this.dataImportService = dataImportService;
+
+    private final PizzaService pizzaService;
+
+    public PizzaController(PizzaService pizzaService) {
+        this.pizzaService = pizzaService;
     }
 
-    @PostMapping("/import/all")
-    public ResponseEntity<String> importAllData(@RequestParam("csvFilePath") String csvFilePath) {
-        try {
-            dataImportService.importData(csvFilePath);
-            return ResponseEntity.ok("All data imported successfully.");
-        } catch (IOException e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to import sales data.");
-        } catch (ParseException e) {
-            throw new RuntimeException(e);
-        }
+    @GetMapping
+    public ResponseEntity<List<PizzaDTO>> getAllPizzas(Pageable pageable) {
+        Page<PizzaDTO> pizzas = pizzaService.getAllPizzas(pageable);
+        return ResponseEntity.ok(pizzas.getContent());
     }
-    @PostMapping("/import")
-    public ResponseEntity<String> importFileData(@RequestParam("csvFilePath") String csvFilePath) {
-        try {
-            dataImportService.importData(csvFilePath);
-            return ResponseEntity.ok("Data imported successfully.");
-        } catch (IOException | ParseException e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to import sales data.");
+
+    @GetMapping("/{pizzaId}")
+    public ResponseEntity<PizzaDTO> getPizzaById(@PathVariable Long pizzaId) {
+        Optional<PizzaDTO> pizzaDTOOptional = pizzaService.getPizzaById(pizzaId);
+        return pizzaDTOOptional.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping
+    public ResponseEntity<PizzaDTO> createPizza(@RequestBody PizzaDTO pizzaDTO) {
+        PizzaDTO createdPizza = pizzaService.createPizza(pizzaDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdPizza);
+    }
+
+    @PutMapping("/{pizzaId}")
+    public ResponseEntity<PizzaDTO> updatePizza(@PathVariable Long pizzaId, @RequestBody PizzaDTO pizzaDTO) {
+        Optional<PizzaDTO> updatedPizza = pizzaService.updatePizza(pizzaId, pizzaDTO);
+        return updatedPizza.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{pizzaId}")
+    public ResponseEntity<Void> deletePizza(@PathVariable Long pizzaId) {
+        boolean deleted = pizzaService.deletePizza(pizzaId);
+        if (deleted) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
         }
     }
 }
