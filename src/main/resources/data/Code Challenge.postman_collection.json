@@ -1,11 +1,11 @@
 {
 	"info": {
-		"_postman_id": "92368f39-dad0-425d-aee3-12b6628a2e1c",
+		"_postman_id": "6a787f56-3c99-4880-a43c-e938dfef6bba",
 		"name": "Code Challenge",
 		"description": "StartFragment\n\na. Create an import mechanism for the CSV files with the sales data:\n\n- This endpoint allows for importing the dataset from CSV files, including the different tables and their relationships.\n- You can use a simple one-time import script or choose another approach to handle the import process.\n    \n\nb. Data is stored in a structured way in a new database schema:\n\n- The database schema is designed specifically for the imported data from the CSV files.\n- The chosen schema is suitable for the data as it efficiently organizes the information, ensuring proper data storage and retrieval.\n    \n\nc. Process the data upon import:\n\n- The import mechanism should process the data from the CSV files and perform the following actions:\n    1. Store the relevant data in their respective tables.\n    2. Establish the correct relationships between the new data entries in the database.\n\nd. Create a simple REST API to consume the insights:\n\n- This REST API provides endpoints to access the insights derived from the imported sales data.\n- The API returns JSON data, making it easy to consume and work with the information.\n- Design the schema of the API based on the requirements and include endpoints to retrieve different types of sales data.\n- Additionally, provide endpoints to add new data entries, such as updating sales data like orders.\n    \n\nEndFragment",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "8206917",
-		"_collection_link": "https://www.postman.com/restless-comet-2134/workspace/code-challenge/collection/8206917-92368f39-dad0-425d-aee3-12b6628a2e1c?action=share&creator=8206917&source=collection_link"
+		"_collection_link": "https://www.postman.com/restless-comet-2134/workspace/code-challenge/collection/8206917-6a787f56-3c99-4880-a43c-e938dfef6bba?action=share&creator=8206917&source=collection_link"
 	},
 	"item": [
 		{
@@ -22,29 +22,34 @@
 								{
 									"key": "filename",
 									"value": "all",
+									"description": "select one only filename",
 									"type": "text",
 									"disabled": true
 								},
 								{
 									"key": "filename",
-									"value": "pizza_types",
+									"value": "pizza_types.csv",
+									"description": "select one only filename",
 									"type": "text"
 								},
 								{
 									"key": "filename",
-									"value": "pizzas",
+									"value": "pizzas.csv",
+									"description": "select one only filename",
 									"type": "text",
 									"disabled": true
 								},
 								{
 									"key": "filename",
-									"value": "orders",
+									"value": "orders.csv",
+									"description": "select one only filename",
 									"type": "text",
 									"disabled": true
 								},
 								{
 									"key": "filename",
-									"value": "order_details",
+									"value": "order_details.csv",
+									"description": "select one only filename",
 									"type": "text",
 									"disabled": true
 								}
