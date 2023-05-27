@@ -11,11 +11,15 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.ParseException;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -26,6 +30,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Component
 public class DataImportService {
     private final PizzaTypeRepository pizzaTypeRepository;
     private final PizzaRepository pizzaRepository;
@@ -37,6 +42,13 @@ public class DataImportService {
     private static final String FILE_PATH_PIZZA =  "src/main/resources/data/pizzas.csv";
     private static final DateTimeFormatter timeFormat = DateTimeFormatter.ofPattern("HH:mm:ss");
     private static final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final int BATCH_SIZE = 50;
+    private int offset = 0;
+    private boolean pizzaTypeBoolean = Boolean.FALSE;
+    private boolean pizzaBoolean = Boolean.FALSE;
+    private boolean orderBoolean = Boolean.FALSE;
+    private boolean orderDetailsBoolean = Boolean.FALSE;
+
     @Autowired
     public DataImportService(PizzaTypeRepository pizzaTypeRepository,PizzaRepository pizzaRepository,OrderRepository orderRepository,OrderDetailsRepository orderDetailsRepository) {
         this.pizzaTypeRepository = pizzaTypeRepository;
@@ -48,58 +60,120 @@ public class DataImportService {
     @Transactional
     public void importData(String filename) throws IOException, ParseException {
         if(filename.equalsIgnoreCase("all")){
-            importDataFromCSV(FILE_PATH_PIZZA_TYPES);
+            Path path = Paths.get(FILE_PATH_PIZZA_TYPES);
+            String fileName = path.getFileName().toString();
+            importDataFromCSV(fileName);
 
-            importDataFromCSV(FILE_PATH_PIZZA);
+            path = Paths.get(FILE_PATH_PIZZA);
+            fileName = path.getFileName().toString();
+            importDataFromCSV(fileName);
 
-            importDataFromCSV(FILE_PATH_ORDER);
+            path = Paths.get(FILE_PATH_ORDER);
+            fileName = path.getFileName().toString();
+            importDataFromCSV(fileName);
 
-            importDataFromCSV(FILE_PATH_ORDER_DETAILS);
+            path = Paths.get(FILE_PATH_ORDER_DETAILS);
+            fileName = path.getFileName().toString();
+            importDataFromCSV(fileName);
 
             System.out.println("All data imported successfully!");
         }else{
             importDataFromCSV(filename);
         }
     }
-    private void importDataFromCSV(String csvFilePath) throws IOException, ParseException {
+    @Transactional
+//    @Scheduled(cron = "0 */3 * * * *") // Runs every 10 minutes
+    @Scheduled(cron = "*/30 * * * * *") // Runs every 30 seconds
+    public void importNextBatch() throws IOException, ParseException {
+        if ( pizzaTypeBoolean && pizzaBoolean && orderBoolean && orderDetailsBoolean ) {
+            Path path = Paths.get(FILE_PATH_ORDER_DETAILS);
+            String fileName = path.getFileName().toString();
+            int importedCount = importDataFromCSV(fileName);
+            if (importedCount > 0) {
+                System.out.println("Imported " + importedCount + " records of Order Details data.");
+                System.out.println("Total records of Order Details data " + offset + ".");
+            } else {
+                System.out.println("No more records to import for Order Details data.");
+            }
+        }
+        else{
+            System.out.println("Cronjob for import for Order Details data is not applicable.");
+        }
+    }
+    private int parseAndSaveOrderDetailDataFromCSV(CSVParser csvParser, int batchSize) {
+        List<OrderDetail> orderDetails = new ArrayList<>();
+        boolean isFirstRecord = true;
+        int importedCount = 0;
+
+        for (CSVRecord csvRecord : csvParser) {
+            if (isFirstRecord) {
+                isFirstRecord = false;
+                continue;
+            }
+
+            Long orderDetailsId = Long.valueOf(csvRecord.get(0));
+            Order order = getOrderId(Long.valueOf(csvRecord.get(1)));
+            Pizza pizza = getPizzaId(csvRecord.get(2));
+            Integer quantity = Integer.valueOf(csvRecord.get(3));
+            OrderDetail orderDetail = new OrderDetail(orderDetailsId, order, pizza, quantity);
+            orderDetails.add(orderDetail);
+
+            if (orderDetails.size() == batchSize) {
+                break;
+            }
+        }
+
+        if (!orderDetails.isEmpty()) {
+            importedCount = orderDetails.size();
+            orderDetailsRepository.saveAll(orderDetails);
+        }
+
+        return importedCount;
+    }
+    public int importDataFromCSV(String csvFilePath) throws IOException, ParseException {
         FileReader fileReader;
-        CSVParser csvParser ;
+        CSVParser csvParser;
+        int importedCount = 0;
         switch (csvFilePath) {
-            case "pizza_types":
+            case "pizza_types.csv":
+                pizzaTypeBoolean = Boolean.TRUE;
                 fileReader = new FileReader(FILE_PATH_PIZZA_TYPES);
                 csvParser = new CSVParser(fileReader, CSVFormat.DEFAULT);
                 List<PizzaType> pizzaTypes = parsePizzaTypeDataFromCSV(csvParser);
                 pizzaTypeRepository.saveAll(pizzaTypes);
                 System.out.println("Pizza Type data imported successfully!");
-            break;
+                break;
 
-            case "pizzas":
+            case "pizzas.csv":
+                pizzaBoolean = Boolean.TRUE;
                 fileReader = new FileReader(FILE_PATH_PIZZA);
                 csvParser = new CSVParser(fileReader, CSVFormat.DEFAULT);
                 List<Pizza> pizzas = parsePizzaDataFromCSV(csvParser);
                 pizzaRepository.saveAll(pizzas);
                 System.out.println("Pizza data imported successfully!");
-            break;
+                break;
 
-            case "orders":
+            case "orders.csv":
+                orderBoolean = Boolean.TRUE;
                 fileReader = new FileReader(FILE_PATH_ORDER);
                 csvParser = new CSVParser(fileReader, CSVFormat.DEFAULT);
                 List<Order> orders = parseOrderDataFromCSV(csvParser);
                 orderRepository.saveAll(orders);
                 System.out.println("Order imported successfully!");
-            break;
+                break;
 
-            case "order_details":
+            case "order_details.csv":
+                orderDetailsBoolean = Boolean.TRUE;
                 fileReader = new FileReader(FILE_PATH_ORDER_DETAILS);
                 csvParser = new CSVParser(fileReader, CSVFormat.DEFAULT);
-                List<OrderDetail> orderDetails = parseOrderDetailDataFromCSV(csvParser);
-                orderDetailsRepository.saveAll(orderDetails);
-                System.out.println("Order Details imported successfully!");
+                importedCount = parseAndSaveOrderDetailDataFromCSV(csvParser,BATCH_SIZE);
+                offset += importedCount;
                 break;
 
             default:
                 throw new IllegalArgumentException("Unsupported file: " + csvFilePath);
         }
+        return importedCount;
     }
     private List<OrderDetail> parseOrderDetailDataFromCSV(CSVParser csvParser) {
         List<OrderDetail> orderDetails = new ArrayList<>();
