@@ -104,13 +104,17 @@ public class DataImportService {
         List<OrderDetail> orderDetails = new ArrayList<>();
         boolean isFirstRecord = true;
         int importedCount = 0;
+        int skippedCount = 0;
 
         for (CSVRecord csvRecord : csvParser) {
             if (isFirstRecord) {
                 isFirstRecord = false;
                 continue;
             }
-
+            if (skippedCount < offset) {
+                skippedCount++;
+                continue;
+            }
             Long orderDetailsId = Long.valueOf(csvRecord.get(0));
             Order order = getOrderId(Long.valueOf(csvRecord.get(1)));
             Pizza pizza = getPizzaId(csvRecord.get(2));
